@@ -10,10 +10,9 @@ browser.runtime.onMessage.addListener(
 
 // For those new to Promises, to view the contents in the console,
 // just use promise.then( a => console.log(a) );
+browser.storage.sync.get().then( a => { console.log("Settings:",a) } );
 
-main().then( _ => {
-    return browser.storage.sync.get().then((res) => { console.log("Settings:",res) } );
-});
+main()
 
 async function main(){ // Same as 'const main = async function(){...}'
     let configURIs = [] // 'let' bounds the variable to this function's scope and down.
