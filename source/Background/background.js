@@ -16,7 +16,7 @@ main()
 
 async function main(){ // Same as 'const main = async function(){...}'
     let configURIs = [] // 'let' bounds the variable to this function's scope and down.
-        localConfigNames = await ls( 'Configs', flags='R' ); // 'await' syncs Promises/aysnc functions.
+        localConfigNames = await ls( 'Configs/', flags='R' ); // 'await' syncs Promises/aysnc functions.
     // Convert the path/name to a full URI string to GET.
     localConfigNames.forEach( configName => { 
         if( configName.toLowerCase().endsWith('.json') ){ // Filter out non-config files.

@@ -123,10 +123,10 @@ async function ls(path, flags=''){
         reader.readAsText(blob);
     });
     while((matches = re.exec(directoryText))!==null){
-        if(matches[0].endsWith('FILE ')) output.push(path+'/'+matches[1]);
-        else if(matches[0].endsWith('DIRECTORY ')){
-            if(flags.includes('R')) promises.push( ls(path+'/'+matches[1], flags=flags) );
-            else output.push(path+'/'+matches[1]+'/');
+        if(matches[0].match(/FILE ?$/)) output.push(path+matches[1]);
+        else if(matches[0].match(/DIRECTORY ?$/)){
+            if(flags.includes('R')) promises.push( ls(path+matches[1], flags=flags) );
+            else output.push(path+matches[1]);
         }
     }
     if(promises.length!==0){
