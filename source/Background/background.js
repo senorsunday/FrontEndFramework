@@ -65,21 +65,20 @@ function applyConfigs(configs){ // Needs a lot of TLC
             notify(message, 'Error', body);
         }
         else{
-            loadSettings('app.'+config.id).then((settings)=>{
-                let defaults = branch(config, 'default', {});
-                if(debug) console.log("Defaults:", defaults)
-                if(config.hasOwnProperty('menuItems')){
-                    menus += 1;
-                    buildMenu(config.menuItems, defaults, settings)
-                }
-            });
+            let defaults = branch(config, 'default', {});
+            if(debug) console.log("Defaults:", defaults)
+            if(config.hasOwnProperty('menuItems')){
+                menus += 1;
+                buildMenu(config.title, config.menuItems, defaults)
+            }
         }
     });
     console.log("Menu Actions:",menuAction)
     browser.contextMenus.onClicked.addListener((info, tab) => {
         menuAction[info.menuItemId](info, tab)//(info.selectionText, tab)
     });
-    function buildMenu(menuItems, def, settings){
+    // BEGIN CODE I'M NOT PROUD OF.
+    function buildMenu(title, menuItems, def){
         if(menus>=2) menuItems.unshift({ "type":"separator" }) // Divide menus between configs
         menuItems.forEach((item)=>{
             // if(debug) console.log(item);
@@ -109,7 +108,7 @@ function applyConfigs(configs){ // Needs a lot of TLC
                         else output = new Promise((res)=>{res({'tab':tab})}) // Since we're tagging on 'then' statements we need to start with a Promise
                         item.actions.forEach((action)=>{
                             if(debug) console.log('action', action)
-                            output = output.then((response)=>{
+                            output = output.then( async(response)=>{
                                 if(debug) console.log("Response:",response)
                                 if(action.hasOwnProperty('parse')){
                                     let re = branch(action, 'parse.pattern') || branch(def, 'parse.pattern') || ".*",
@@ -121,23 +120,15 @@ function applyConfigs(configs){ // Needs a lot of TLC
                                 }
                                 if(action.hasOwnProperty('copy')) sendToClipboard(response.data, response.tab)
                                 if(action.hasOwnProperty('open')){
-                                    let url = ''
-                                    action.open.forEach((part)=>{
-                                        if(part=='@data') url += response.data
-                                        else if(part.startsWith('@')) url += settings[part.slice(1)]
-                                        else url += part
-                                    })
-                                    response = browser.tabs.create({'url':url}).then((tab)=>{
-                                        return {'data':response.data, 'tab':tab};
+                                    let url = await mapURL( action.open, title, response.data );
+                                    if(debug) console.log("URL", url );
+                                    response = browser.tabs.create({ 'url' : url }).then((tab)=>{
+                                        return { 'data':response.data, 'tab':tab };
                                     });
                                 }
                                 else if(action.hasOwnProperty('api')){
-                                    let url = ''
-                                    action.api.url.forEach((part)=>{
-                                        if(part=='@data') url += response.data
-                                        else if(part.startsWith('@')) url += settings[part.slice(1)]
-                                        else url += part
-                                    })
+                                    let url = await mapURL( action.api.url, title, response.data );
+                                    if(debug) console.log("URL", url );
                                     response = fetch(url, {"method":action.api.method, "body":action.api.body}).then((fetched)=>{
                                         return fetched.text().then((text)=>{
                                             return {'data':text, 'tab':tab};
@@ -156,12 +147,28 @@ function applyConfigs(configs){ // Needs a lot of TLC
             browser.contextMenus.create(menuObj);
         });
     }
+    // END CODE I'M NOT PROUD OF.
 }
 
 ///////////////////////////
 // Supporting Functions //
 /////////////////////////
 // Some are defined in utilities.js
+
+async function mapURL(urlArray, title, responseData){
+    let url = urlArray.map( async(part) =>{
+        if(part=='@data') return responseData;
+        else if(part.startsWith('@')){
+            let setting = await browser.storage.sync.get(title).then(settings=>{
+                return branch(settings, title+'.'+part.slice(1)+'.value');
+            })
+            if(debug) console.log(part.slice(1), '"'+setting+'"');
+            return setting;
+        }
+        return part;
+    });
+    return await Promise.all(url).then(url=>url.join(''));
+}
 
 function populateSettings(configs, setsAll){
     return Promise.all( // Just to make sure we generate all the settings before relying on them.

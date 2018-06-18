@@ -66,6 +66,10 @@ async function fetchObject(url){
 // loadSettings('apps.newTab', 'apps.server').then( settingsArray => {...} )
 async function loadSettings(){
     if(arguments.length===0) return browser.storage.sync.get();
+    else if(arguments.length===1){
+        let tree = await browser.storage.sync.get( arguments[0].split('.')[0] );
+        return branch(tree, arguments[0]);
+    }
     else{
         return Promise.all( // So we don't return 
             Array.from(arguments).map( async(arg)=> {
@@ -103,7 +107,7 @@ async function pageBuilder(template, content, settings={}){
         })();`;
     if(content.hasOwnProperty('data')) code += `
         var appData = ${content.data};`;
-    console.log(code)
+    // console.log(code)
     return browser.tabs.executeScript(tab.id, {"code": code });
 }
 
