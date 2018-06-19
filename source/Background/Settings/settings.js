@@ -1,16 +1,22 @@
 var debugSettings = false;
 // For displaying settings in the settings menus dynamically
-
-var setsAll = browser.storage.sync.get()
 document.addEventListener( 'DOMContentLoaded', onLoad );
 
+if(document.title==='Toolbar'){ // Reloads the extension if you close the settings popup
+    window.addEventListener( 'blur', ()=>{
+        browser.runtime.sendMessage('main');
+    });
+}
+
 async function onLoad(){
+    console.log('Loading Settings')
     await restoreOptions()
     return loadedSettings()
 };
 
-function saveOptions(){
-    console.log("Saving...")
+async function saveOptions(){
+    if(debugSettings) console.log("Saving...")
+    let setsAll = await browser.storage.sync.get()
     Array.from(document.getElementsByClassName('setting')).forEach(elem=>{
         setsAll[elem.parentElement.getAttribute('name')][elem.name].value = elem.value
     })
@@ -18,7 +24,7 @@ function saveOptions(){
 };
 
 async function restoreOptions(){
-    setsAll = await setsAll
+    let setsAll = await browser.storage.sync.get()
     let body = '';
     if(debugSettings) console.log(document.title+':')
     Object.keys(setsAll).forEach( title => {
@@ -64,12 +70,12 @@ async function loadedSettings(){
     // console.log('Settings loaded')
     let button = document.createElement('button');
     if(document.title==='Settings'){
-        // button.style = "height:30px";
         button.className = "btn btn-secondary"
         button.innerHTML = "Reload Extension";
         button.addEventListener("click", async()=>{
-            await saveOptions() // Just to make sure we catch setting changes before reloading.
-             browser.runtime.reload().then( _ => location.reload() )
+            await saveOptions();
+            await browser.runtime.sendMessage('main');
+            window.location.reload(true); // True means the cache is bypassed
         }); // Wrapped in a func so no args are passed
     }
     if(document.title==='Toolbar'){
@@ -101,9 +107,4 @@ function seededRandom(seed) {
 // function setValue(element, value){
 //     if(element.type=='checkbox') element.checked = value;
 //     else element.value = value;
-// }
-
-// function removeElement(elementId) {
-//     var element = document.getElementById(elementId);
-//     element.parentNode.removeChild(element);
 // }

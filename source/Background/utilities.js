@@ -53,32 +53,64 @@ function sleep(ms){
 };
 
 // Fetch and parse an object with error handling
-async function fetchObject(url){
+async function fetchObject(url, args=null){
+    let response = null
     try{
-        let response = await fetch(url);
-        let responseObject = await response.json();
-        return responseObject;
+        response = await fetch(url, args);
     }
-    catch(e){ return {'Error':e, 'URL':url}; }
+    catch(e){
+        if(args.retry){
+            browser.notifications.create('', {
+                "type": "basic",
+                "iconUrl": browser.extension.getURL("Public/Icons/favicon.svg"),
+                "title": "Can't access file",
+                "message": "Check the path and certificate for:\n"+url
+            })
+            let tab = await browser.tabs.create({'url':url});
+            browser.tabs.onRemoved.addListener((id)=>{
+                console.log(id,'removed', tab.id)
+                if(id===tab.id) browser.runtime.reload();
+            })
+            return
+        }
+        else{
+            console.log({'Error':e, 'URL':url, 'args':args});
+            return
+        }
+    }
+    try{
+        let responseObject = await response.json();
+        return responseObject; // Success!
+    }
+    catch(e){
+        browser.notifications.create('', {
+            "type": "basic",
+            "iconUrl": browser.extension.getURL("Public/Icons/favicon.svg"),
+            "title": "Can't parse the file",
+            "message": "Check the file (URL in console):\n"+url
+        })
+        console.log('Failed to load:',{'Error':e, 'URL':url, 'args':args});
+        return
+    }
 };
 
 // Takes one or more strings and returns the stored value
 // loadSettings('apps.newTab', 'apps.server').then( settingsArray => {...} )
-async function loadSettings(){
-    if(arguments.length===0) return browser.storage.sync.get();
-    else if(arguments.length===1){
-        let tree = await browser.storage.sync.get( arguments[0].split('.')[0] );
-        return branch(tree, arguments[0]);
-    }
-    else{
-        return Promise.all( // So we don't return 
-            Array.from(arguments).map( async(arg)=> {
-                let tree = await browser.storage.sync.get( arg.split('.')[0] );
-                return branch(tree, arg);
-            })
-        );
-    }
-};
+// async function loadSettings(){
+//     if(arguments.length===0) return browser.storage.sync.get();
+//     else if(arguments.length===1){
+//         let tree = await browser.storage.sync.get( arguments[0].split('.')[0] );
+//         return branch(tree, arguments[0]);
+//     }
+//     else{
+//         return Promise.all( // So we don't return 
+//             Array.from(arguments).map( async(arg)=> {
+//                 let tree = await browser.storage.sync.get( arg.split('.')[0] );
+//                 return branch(tree, arg);
+//             })
+//         );
+//     }
+// };
 
 // Loads an HTML template, updates it,
 // then returns the tab object

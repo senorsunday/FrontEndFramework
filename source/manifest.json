@@ -2,7 +2,7 @@
     "homepage_url": "https://github.com/senorsunday/FrontEndFramework",
     "name": "Front End Framework",
     "description": "This is a framework for webextensions, so you can deploy one quickly without any frond-end work",
-    "version": "0.9.9",
+    "version": "0.99.99",
     "icons":{ "16": "Public/Icons/favicon.svg", "96": "Public/Icons/favicon.svg" },
     "manifest_version": 2,
     "background": { "page": "Background/index.html" },
@@ -16,7 +16,8 @@
     "browser_action": {
         "default_title": "Front End Framework",
         "default_popup": "Background/Settings/toolbar.html",
-        "browser_style": false
+        "browser_style": false,
+        "default_icon": { "16": "Public/Icons/favicon.svg", "32": "Public/Icons/favicon.svg" }
     },
     "options_ui": {
         "page": "Background/Settings/settings.html",

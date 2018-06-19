@@ -1,12 +1,13 @@
 console.log('Starting Front End Framework...');
-var debug=false;
+var debug=true;
 var colors={};
 
-browser.runtime.onMessage.addListener(
-    function (m){
-      console.log("---Message:",m);
+browser.runtime.onMessage.addListener(async(m)=>{
+    if(m==='main'){
+        console.log('Reloading Front End Framework...');
+        return await main();
     }
-);
+});
 
 // For those new to Promises, to view the contents in the console,
 // just use promise.then( a => console.log(a) );
@@ -14,17 +15,22 @@ browser.storage.sync.get().then( a => { console.log("Settings:",a) } );
 
 main()
 
-async function main(){ // Same as 'const main = async function(){...}'
+async function clear(){
+    browser.contextMenus.removeAll()
+}
+
+async function main(){  // Same as 'const main = async function(){...}'
+    await clear();      // Wipes the previous session
     let configURIs = [] // 'let' bounds the variable to this function's scope and down.
         localConfigNames = await ls( 'Configs/', flags='R' ); // 'await' syncs Promises/aysnc functions.
     // Convert the path/name to a full URI string to GET.
-    localConfigNames.forEach( configName => { 
-        if( configName.toLowerCase().endsWith('.json') ){ // Filter out non-config files.
-            configURIs.push( browser.extension.getURL(configName) ) // browser.extension.getURL() directly returns a string.
+    for (let i = 0, len = localConfigNames.length; i < len; i++){
+        if( localConfigNames[i].toLowerCase().endsWith('.json') ){           // Filter out non-config files.
+            configURIs.push( browser.extension.getURL(localConfigNames[i]) ) // browser.extension.getURL() directly returns a string.
         }
-    })
+    }
     // Async start the process of loading settings (at this point), which is usually less than a sec.
-    let setsAll = loadSettings(); // A Promise (async function) that resolves as an object full of settings
+    let setsAll = browser.storage.sync.get(); // A Promise (async function) that resolves as an object full of settings
     // If we still have the front end famework config in the Configs folder,
     // we'll use that as an indicator that we want to enable the user to
     // list config files on remote servers to download.
@@ -32,14 +38,23 @@ async function main(){ // Same as 'const main = async function(){...}'
         setsAll = await setsAll // If we need this now, we need to wait for it to resolve now.
         if( setsAll.hasOwnProperty('Front End Framework') ){
             branch( setsAll, 'Front End Framework.Config URLs.value', '' ).split(',').forEach(uri=>{ // branch is basically python's dict.get()
-                if(uri.endsWith('.json')) configURIs.push(uri)
+                if(uri.length>0){ // So we aren't just padding and requesting 'https://'
+                    if(!uri.startsWith('http')) uri = 'https://'+uri
+                    configURIs.push(uri);
+                }
             })
         }; // Else this is the first time running this ext, or you just threw in a framework.json
     }
     // Start GET'ing all of the configs and wait for them to all finish.
     if(debug) console.log("configURIs:", configURIs);
-    let configPromises = configURIs.map( filename => fetchObject(filename+"?uncached") ); // Any argument will bypass the cache
-    let configs = await Promise.all(configPromises) // Promise.all() returns a promise that resolves when all children to finish.
+    let configPromises = configURIs.map( filename => fetchObject(filename, {cache: "no-store", retry:true} ) );
+    let configWErr = await Promise.all(configPromises); // Promise.all() returns a promise that resolves when all children to finish.
+    let configs = [];
+    for (let i = 0, len = configWErr.length; i < len; i++){
+        if(configWErr[i]!==undefined){
+            configs.push(configWErr[i])
+        }
+    }
     if(debug) console.log('Configs:', configs)
     // In case we haven't already.
     setsAll = await setsAll // You can call this as many times as you want without adding eval time.
@@ -53,7 +68,7 @@ async function main(){ // Same as 'const main = async function(){...}'
 }
 
 function applyConfigs(configs){ // Needs a lot of TLC
-    // if(debug) console.log('Configs:',configs)
+    if(debug) console.log('Configs:',configs)
     var menuAction = {}
     let menus = 0,
         HRs = 1,
@@ -73,7 +88,7 @@ function applyConfigs(configs){ // Needs a lot of TLC
             }
         }
     });
-    console.log("Menu Actions:",menuAction)
+    if(debug) console.log("Menu Actions:",menuAction)
     browser.contextMenus.onClicked.addListener((info, tab) => {
         menuAction[info.menuItemId](info, tab)//(info.selectionText, tab)
     });
