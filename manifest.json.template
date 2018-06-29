@@ -1,0 +1,41 @@
+{
+    "homepage_url": "https://github.com/senorsunday/FrontEndFramework",
+    "name": "Front End Framework",
+    "description": "This is a framework for webextensions, so you can deploy one quickly without any frond-end work",
+    "version": "0.9999.9999.1",
+    "icons": { "16": "Public/Icons/favicon.svg", "96": "Public/Icons/favicon.svg" }, // Chrome { "128": "Public/Icons/favicon.png" }
+    "manifest_version": 2,
+    "background": { "page": "Background/index.html" },
+    "content_security_policy": "script-src 'self'; object-src 'self'",
+    "content_scripts": [
+        {
+            "js": [ "active.js" ],
+            "matches": [ "*://*/*" ]
+        }
+    ],
+    "browser_action": {
+        "default_title": "Front End Framework",
+        "default_popup": "Background/Settings/toolbar.html",
+        "browser_style": false,
+        "default_icon": { "16": "Public/Icons/favicon.svg", "32": "Public/Icons/favicon.svg" }
+    },
+    "options_ui": {
+        "page": "Background/Settings/settings.html",
+        "browser_style": false
+    },
+    "applications": {       // Not supported in chrome.
+      "gecko": {
+            "id": "front_end_framework@github.com"
+        }
+    },
+    "web_accessible_resources": ["Public/*/*"],
+    "permissions": [
+        "*://*/*",          // Defaults to running on all sites. You can programatically turn this off, not on.
+        "storage",          // To store settings
+        "tabs",             // Accessing open tabs, allowing tab changes
+        "contextMenus",     // Right click menus
+        "clipboardWrite",   // Writing to the clipboard...
+        "notifications",    // To alert the user
+        "alarms"            // To schedule tasks
+    ]
+}

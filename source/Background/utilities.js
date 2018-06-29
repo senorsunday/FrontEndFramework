@@ -52,29 +52,35 @@ function sleep(ms){
     return new Promise( resolve => setTimeout(resolve, ms) );
 };
 
-// Fetch and parse an object with error handling
+
+// Fetch and parse an object with lots of error handling
 async function fetchObject(url, args=null){
     let response = null
     try{
         response = await fetch(url, args);
     }
     catch(e){
+        browser.notifications.create('', {
+            "type": "basic",
+            "iconUrl": browser.extension.getURL("Public/Icons/favicon.svg"),
+            "title": "Can't access file",
+            "message": "Check the path and certificate for:\n"+url
+        });
         if(args.retry){
-            browser.notifications.create('', {
-                "type": "basic",
-                "iconUrl": browser.extension.getURL("Public/Icons/favicon.svg"),
-                "title": "Can't access file",
-                "message": "Check the path and certificate for:\n"+url
-            })
-            let tab = await browser.tabs.create({'url':url});
-            browser.tabs.onRemoved.addListener((id)=>{
-                console.log(id,'removed', tab.id)
-                if(id===tab.id) browser.runtime.reload();
-            })
-            return
+            browser.notifications.onClicked.addListener( async(id) => {
+                let tab = await browser.tabs.create({'url':url});
+                browser.tabs.onRemoved.addListener((id)=>{
+                    console.log(id,'removed', tab.id);
+                    if(id===tab.id){
+                        // We need to kill and reload the whole extension
+                        // to remove the event listeners
+                        browser.runtime.reload();
+                    }
+                })
+            });
         }
         else{
-            console.log({'Error':e, 'URL':url, 'args':args});
+            console.log('Request failed:',{'Error':e, 'URL':url, 'args':args});
             return
         }
     }
@@ -93,6 +99,7 @@ async function fetchObject(url, args=null){
         return
     }
 };
+
 
 // Takes one or more strings and returns the stored value
 // loadSettings('apps.newTab', 'apps.server').then( settingsArray => {...} )

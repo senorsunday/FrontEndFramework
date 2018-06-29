@@ -1,25 +1,41 @@
 console.log('Starting Front End Framework...');
-var debug=true;
+var debug=false;
 var colors={};
 
-browser.runtime.onMessage.addListener(async(m)=>{
-    if(m==='main'){
+// Event listeners are functions that asynchronously trigger whenever an event happens.
+browser.runtime.onMessage.addListener( async(message, sender, response) => {
+    if(debug) console.log('We get signal:\n\t', message, '\n\t', sender, '\n\t', response);
+    if(message==='main'){
         console.log('Reloading Front End Framework...');
-        return await main();
+        await main();
+        response(true);
     }
+    return true;
 });
 
 // For those new to Promises, to view the contents in the console,
 // just use promise.then( a => console.log(a) );
 browser.storage.sync.get().then( a => { console.log("Settings:",a) } );
 
+
+// Run once the program starts, or triggered when settings change.
 main()
+// And refresh every hour
+setInterval( ( _=> main() ), 3600000);
 
 async function clear(){
-    browser.contextMenus.removeAll()
+    browser.contextMenus.onClicked.removeListener(addActions);
+    return browser.contextMenus.removeAll() // This doesn't remove event listeners, so we do above.
+}
+
+var menuActions = {}; // Dynamically populated further down
+function addActions(info, tab){         // Needs to be explicitly defined so it can 
+    let action = menuActions;            // be removed from the event listener above.
+    action[info.menuItemId](info, tab)
 }
 
 async function main(){  // Same as 'const main = async function(){...}'
+    if(debug) console.log('Running main()');
     await clear();      // Wipes the previous session
     let configURIs = [] // 'let' bounds the variable to this function's scope and down.
         localConfigNames = await ls( 'Configs/', flags='R' ); // 'await' syncs Promises/aysnc functions.
@@ -37,7 +53,8 @@ async function main(){  // Same as 'const main = async function(){...}'
     if( localConfigNames.includes("Configs/framework.json") ){
         setsAll = await setsAll // If we need this now, we need to wait for it to resolve now.
         if( setsAll.hasOwnProperty('Front End Framework') ){
-            branch( setsAll, 'Front End Framework.Config URLs.value', '' ).split(',').forEach(uri=>{ // branch is basically python's dict.get()
+            // branch is basically python's dict.get()
+            branch( setsAll, 'Front End Framework.Config URLs.value', '' ).split(',').forEach(uri=>{
                 if(uri.length>0){ // So we aren't just padding and requesting 'https://'
                     if(!uri.startsWith('http')) uri = 'https://'+uri
                     configURIs.push(uri);
@@ -55,7 +72,6 @@ async function main(){  // Same as 'const main = async function(){...}'
             configs.push(configWErr[i])
         }
     }
-    if(debug) console.log('Configs:', configs)
     // In case we haven't already.
     setsAll = await setsAll // You can call this as many times as you want without adding eval time.
     // Create settings for new config files and set new default values for new settings
@@ -69,29 +85,21 @@ async function main(){  // Same as 'const main = async function(){...}'
 
 function applyConfigs(configs){ // Needs a lot of TLC
     if(debug) console.log('Configs:',configs)
-    var menuAction = {}
     let menus = 0,
         HRs = 1,
         titleRE = /([^\/]+).json/i;
     configs.forEach((config)=>{
-        if(config.hasOwnProperty('Error')){
-            let message = "Config Failed to load\nClick to See Full Error",
-                body = [ ['h1','Error Message:'],['p',config.Error.message], ['h1','Unparsable Text:'],['p',config.URL] ];
-            notify(message, 'Error', body);
-        }
-        else{
+        if(config){
             let defaults = branch(config, 'default', {});
-            if(debug) console.log("Defaults:", defaults)
+            if(debug) console.log("Defaults:", defaults);
             if(config.hasOwnProperty('menuItems')){
                 menus += 1;
                 buildMenu(config.title, config.menuItems, defaults)
             }
         }
     });
-    if(debug) console.log("Menu Actions:",menuAction)
-    browser.contextMenus.onClicked.addListener((info, tab) => {
-        menuAction[info.menuItemId](info, tab)//(info.selectionText, tab)
-    });
+    if(debug) console.log("Menu Actions:",menuActions)
+    browser.contextMenus.onClicked.addListener(addActions);
     // BEGIN CODE I'M NOT PROUD OF.
     function buildMenu(title, menuItems, def){
         if(menus>=2) menuItems.unshift({ "type":"separator" }) // Divide menus between configs
@@ -114,9 +122,9 @@ function applyConfigs(configs){ // Needs a lot of TLC
                     else if(def.hasOwnProperty('icons')) menuObj.icons = { '16': def.icons[item.icons] } // If the address doesn't have a key, its a default icon
                 }
                 if(item.hasOwnProperty('actions')){
-                    // if(debug) console.log("All Actions:",item.actions)
+                    if(debug) console.log(item.id+"'s Actions:",item.actions)
                     let pattern = "cid\\w{33}|\\b\\d{9,10}\\b", join="+";
-                    menuAction[item.id] = ((info, tab)=>{
+                    menuActions[item.id] = ((info, tab)=>{
                         let output = null,
                             input = item.input || def.input;
                         if(input==='selection') output = new Promise((res)=>{res({'data':info.selectionText, 'tab':tab})})
@@ -134,21 +142,28 @@ function applyConfigs(configs){ // Needs a lot of TLC
                                     response.data = Array.from(parsePattern(response.data, re, flags, groups)).join(join)
                                 }
                                 if(action.hasOwnProperty('copy')) sendToClipboard(response.data, response.tab)
-                                if(action.hasOwnProperty('open')){
-                                    let url = await mapURL( action.open, title, response.data );
+                                if(action.hasOwnProperty('request')){
+                                    let url = await mapURL( action.request.url, title, response.data );
                                     if(debug) console.log("URL", url );
-                                    response = browser.tabs.create({ 'url' : url }).then((tab)=>{
-                                        return { 'data':response.data, 'tab':tab };
-                                    });
+                                    if(url.length===0){
+                                        console.log("Broken URL from object", action.request)
+                                        return
+                                    }
+                                    if(action.request.open){
+                                        let tab = await browser.tabs.create({ 'url' : url })
+                                        response = { 'data':response.data, 'tab':tab };
+                                    }
+                                    else{
+                                        let method = action.request.method || "GET";
+                                        if(method==="GET") body = undefined;
+                                        let request = await fetch(url, {"method":method, "body":body});
+                                        let text = await request.text();
+                                        response = { 'data':text, 'tab':tab };
+                                    }
                                 }
                                 else if(action.hasOwnProperty('api')){
-                                    let url = await mapURL( action.api.url, title, response.data );
-                                    if(debug) console.log("URL", url );
-                                    response = fetch(url, {"method":action.api.method, "body":action.api.body}).then((fetched)=>{
-                                        return fetched.text().then((text)=>{
-                                            return {'data':text, 'tab':tab};
-                                        })
-                                    })
+                                    let [url, body] = await mapURL( action.api, title, response.data );
+                                    
                                 }
                                 return response;
                             });
@@ -156,7 +171,7 @@ function applyConfigs(configs){ // Needs a lot of TLC
                         return output
                     }); 
                 }
-                else menuAction[item.id] = (()=>{console.log('No Actions')});
+                else menuActions[item.id] = (()=>{console.log('No Actions')});
             }
             // if(debug) console.log(menuObj.id,menuObj);
             browser.contextMenus.create(menuObj);
@@ -170,8 +185,9 @@ function applyConfigs(configs){ // Needs a lot of TLC
 /////////////////////////
 // Some are defined in utilities.js
 
-async function mapURL(urlArray, title, responseData){
-    let url = urlArray.map( async(part) =>{
+async function mapURL(request, title, responseData){
+    if(debug) console.log('CALLING MAPURL', request);
+    async function mapper(part){
         if(part=='@data') return responseData;
         else if(part.startsWith('@')){
             let setting = await browser.storage.sync.get(title).then(settings=>{
@@ -181,8 +197,12 @@ async function mapURL(urlArray, title, responseData){
             return setting;
         }
         return part;
-    });
-    return await Promise.all(url).then(url=>url.join(''));
+    }
+    let url = await Promise.all( request.map(mapper) ).then(part=>part.join(''));
+    if(debug) {
+        console.log('URL', url)
+    }
+    return url;
 }
 
 function populateSettings(configs, setsAll){
@@ -213,25 +233,28 @@ function removedConfigs(configs, setsAll){
     );
 }
 
-function notify(message, title, body=[]){
-    browser.notifications.create('', {
-        "type": "basic",
-        "iconUrl": browser.extension.getURL("Public/Icons/favicon.svg"),
-        "title": title,
-        "message": message
-    })
-    if(body.length>0){
-        browser.notifications.onClicked.addListener( id => {
-            let template = '../Public/template.html',
-                content = {
-                    "title": title,
-                    "body": body
-                };
-            pageBuilder(template, content)
-            browser.notifications.clear(id);
-        });
-    }
-}
+// function notify(message, title, body=[], link=null){
+//     browser.notifications.create('', {
+//         "type": "basic",
+//         "iconUrl": browser.extension.getURL("Public/Icons/favicon.svg"),
+//         "title": title,
+//         "message": message
+//     })
+//     if(body.length>0){
+//         browser.notifications.onClicked.addListener( id => {
+//             let template = '../Public/template.html',
+//                 content = {
+//                     "title": title,
+//                     "body": body
+//                 };
+//             pageBuilder(template, content)
+//             browser.notifications.clear(id);
+//         });
+//     }
+//     else if(link!==null){
+//         return browser.tabs.create
+//     }
+// }
 
 function sendToClipboard(text, tab){ // The tab variable is needed to ID which tab to execute active code in
     let code = "copyToClipboard(" + JSON.stringify(text) + ");";
