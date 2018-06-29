@@ -6,3 +6,4 @@
 1. Settings array values  
 1. Setting Checkboxes/bools  
 1. Completely rewrite applyConfigs()  
+1. Add setting for config update interval
