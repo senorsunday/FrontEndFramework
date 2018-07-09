@@ -7,3 +7,4 @@
 1. Setting Checkboxes/bools  
 1. Completely rewrite applyConfigs()  
 1. Add setting for config update interval
+1. Set static colors in configs (browser.runtime.onMessage)
