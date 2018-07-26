@@ -12,17 +12,17 @@ async function onLoad(){
 
 async function saveOptions(){
     if(debugSettings) console.log("Saving...")
-    let setsAll = await browser.storage.sync.get();
+    let setsAll = await storage.get();
     Array.from( document.getElementsByClassName('setting') ).forEach(elem=>{
         // For each setting input box, it has a parent <div> with the config's title as it's name.
         setsAll[ elem.parentElement.getAttribute('name') ][ elem.name ].value = elem.value;
     })
-    await browser.storage.sync.set(setsAll);
+    await storage.set(setsAll);
     return browser.runtime.sendMessage('main');
 };
 
 async function restoreOptions(){
-    let setsAll = await browser.storage.sync.get();
+    let setsAll = await storage.get();
     let body = '';
     if(debugSettings) console.log(document.title+':');
     Object.keys(setsAll).forEach( title => {

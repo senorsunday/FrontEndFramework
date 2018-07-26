@@ -1,4 +1,22 @@
-var browser = browser||chrome; // Chrome and Firefox compatibility.
+// Chrome and Firefox compatibility.
+var browser = browser||chrome;
+var storage = {};
+if(chrome){
+    storage = {
+        'get': async(a)=>{
+            chrome.storage.sync.get( a, (b)=>{b} );
+        },
+        'set': async(a)=>{
+            chrome.storage.sync.set( a, (b)=>{b} );
+        },
+        'remove': async(a)=>{
+            chrome.storage.sync.remove( a, (b)=>{b} );
+        }
+    }
+}
+else{
+    storage = browser.storage.sync
+}
 
 /////////////////////////////////////
 // Highly Generalizable Functions //
@@ -153,7 +171,7 @@ async function pageBuilder(template, content, settings={}){
 // A Promise that returns the contents of a directory in the extension.
 // ls('Static/Configs').then(( pathsAndFiles )=> {...} )
 async function ls(path, flags=''){
-    // console.log('ls',(flags!==''?'-'+flags+' '+path:path));
+    console.log('ls',(flags!==''?'-'+flags+' '+path:path));
     let output = [],
         promises = [],
         re = /201: ([\S]+).*/ig,
