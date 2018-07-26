@@ -9,3 +9,5 @@
     * Toggle ['clipboard','open tab','execute script'] per config  
 1. Completely rewrite buildMenu()  
 1. Set static colors in configs (browser.runtime.onMessage)
+1. Chrome Support
+    * ls() not working with fetch().then(a=>a.blob())
