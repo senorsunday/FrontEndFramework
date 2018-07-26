@@ -1,10 +1,11 @@
 # Front End Framework
 
 ### TODO
-1. Toggle setting for displaying anything defined in the config  
-1. Toggle ['clipboard','open tab','execute script'] per config  
-1. Settings array values  
-1. Setting Checkboxes/bools  
-1. Completely rewrite applyConfigs()  
-1. Add setting for config update interval
+1. Settings
+    * Values in a variable array
+    * Checkboxes/bools
+    * Config update interval
+    * Toggle for displaying anything defined in the config
+    * Toggle ['clipboard','open tab','execute script'] per config  
+1. Completely rewrite buildMenu()  
 1. Set static colors in configs (browser.runtime.onMessage)
