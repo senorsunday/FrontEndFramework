@@ -1,6 +1,10 @@
 console.info('Starting Front End Framework...');
 var debug=false,
     colors={};
+var menuActions = {},           // These are dynamically populated further down
+    menuCounter = 0,
+    HRCounter = 0;
+var titleRE = /([^\/]+).json/i; // A pattern using the config filename as it's title
 
 // Event listeners are functions that asynchronously trigger whenever an event happens.
 browser.runtime.onMessage.addListener( async(message, sender, response) => {
@@ -14,18 +18,13 @@ browser.runtime.onMessage.addListener( async(message, sender, response) => {
     return true;
 });
 
-// For those new to Promises, to view the contents in the console,
-// just use promise.then( a => console.log(a) );
-browser.storage.sync.get().then( a => { console.log("Settings:", a) } );
-var menuActions = {},           // These are dynamically populated further down
-    menuCounter = 0,
-    HRCounter = 0;
-var titleRE = /([^\/]+).json/i; // A pattern using the config filename as it's title
-
 browser.runtime.onInstalled.addListener( (details)=>{
     if(details.temporary){  // Will never be true from AMO (Firefox ) installation
         console.info( 'Temporary installation. Debug mode on.' )
         debug=true;         // Verbose error and info printing, and quality-of-life for testing
+        // For those new to Promises, to view the contents in the console,
+        // just use promise.then( a => console.log(a) );
+        browser.storage.sync.get().then( a => { console.log("---Settings:", a) } );
     }
     main();                 // Run once the program starts, or triggered when settings change
 } );
@@ -63,7 +62,7 @@ async function main(){  // Same as 'const main = async function(){...}'
         }; // Else this is the first time running this ext, or you just threw in a framework.json
     }
     // Start GET'ing all of the configs and wait for them to all finish.
-    if(debug) console.log("configURIs:", configURIs);
+    if(debug) console.log("---configURIs:", configURIs);
     let configPromises = configURIs.map( filename => fetchObject(filename, {cache: "no-store", retry:true} ) );
     let errorsNConfigs = await Promise.all(configPromises), // Promise.all() returns a promise that resolves when all children to finish.
         configs = [];
@@ -84,7 +83,7 @@ async function main(){  // Same as 'const main = async function(){...}'
         await populated;            // First we need to make sure new settings have defaults set in Settings.
         menuCounter = 0;            // Resetting these vals in case main() is re-run
         HRCounter = 0;
-        if(debug) console.log("Configs:", configs)
+        if(debug) console.log("---Configs:", configs)
         for( let i = 0; i < configs.length; i++ ){
             let config = configs[i];
             if(config){
@@ -96,7 +95,7 @@ async function main(){  // Same as 'const main = async function(){...}'
                 }
             }
         };
-        if(debug) console.log("Menu Actions:",menuActions)
+        if(debug) console.log("---Menu Actions:",menuActions)
         browser.contextMenus.onClicked.addListener(addActions);
     }
     return
@@ -207,22 +206,18 @@ function buildMenu(title, menuItems, def, counter){
 }
 
 async function mapURL(request, title, responseData){
-    // if(debug) console.log('CALLING MAPURL', request);
     async function mapper(part){
         if(part=='@data') return responseData;
         else if(part.startsWith('@')){
             let setting = await browser.storage.sync.get(title).then(settings=>{
                 return branch(settings, title+'.'+part.slice(1)+'.value');
             })
-            // if(debug) console.log(part.slice(1), '"'+setting+'"');
             return setting;
         }
         return part;
     }
     let url = await Promise.all( request.map(mapper) ).then(part=>part.join(''));
-    if(debug) {
-        console.log('URL', url)
-    }
+    if(debug) console.log('---URL:', url);
     return url;
 }
 

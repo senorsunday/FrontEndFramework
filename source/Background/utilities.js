@@ -160,8 +160,14 @@ async function ls(path, flags='', debug=false){
     let output = [],
         promises = [],
         re = /201: ([\S]+).*/ig,
-        response = await fetch( browser.extension.getURL(path), {mode:'same-origin'}),
-        blob = await response.blob(); // Blob() is a Promise, so we can't pass it directly to the reader
+        response = await fetch( browser.extension.getURL(path), {mode:'same-origin'});
+    try{
+        blob = await response.blob();   // Blob() is a Promise, so we can't pass it directly to the reader
+    }
+    catch(e){
+        console.error('Failed to ls directory.\nVerify permissions.',e);
+        return '';                      // Easier to error handle '' in this case
+    }
     let directoryText = await new Promise((resolve, reject)=>{
         let reader = new FileReader();
         reader.onload  = function(s){resolve(s.originalTarget.result)}
