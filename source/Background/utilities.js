@@ -1,22 +1,22 @@
 // Chrome and Firefox compatibility.
 var browser = browser||chrome;
-var storage = {};
-if(chrome){
-    storage = {
-        'get': async(a)=>{
-            chrome.storage.sync.get( a, (b)=>{b} );
-        },
-        'set': async(a)=>{
-            chrome.storage.sync.set( a, (b)=>{b} );
-        },
-        'remove': async(a)=>{
-            chrome.storage.sync.remove( a, (b)=>{b} );
-        }
-    }
-}
-else{
-    storage = browser.storage.sync
-}
+// var storage = {};
+// if(chrome){
+//     storage = {
+//         'get': async(a)=>{
+//             chrome.storage.sync.get( a, (b)=>{b} );
+//         },
+//         'set': async(a)=>{
+//             chrome.storage.sync.set( a, (b)=>{b} );
+//         },
+//         'remove': async(a)=>{
+//             chrome.storage.sync.remove( a, (b)=>{b} );
+//         }
+//     }
+// }
+// else{
+//     storage = browser.storage.sync
+// }
 
 /////////////////////////////////////
 // Highly Generalizable Functions //
@@ -84,23 +84,8 @@ async function fetchObject(url, args=null){
             "title": "Can't access file",
             "message": "Check the path and certificate for:\n"+url
         });
-        if(args.retry){
-            browser.notifications.onClicked.addListener( async(id) => {
-                let tab = await browser.tabs.create({'url':url});
-                browser.tabs.onRemoved.addListener((id)=>{
-                    console.log(id,'removed', tab.id);
-                    if(id===tab.id){
-                        // We need to kill and reload the whole extension
-                        // to remove the event listeners
-                        browser.runtime.reload();
-                    }
-                })
-            });
-        }
-        else{
-            console.log('Request failed:',{'Error':e, 'URL':url, 'args':args});
-            return
-        }
+        console.error('Request failed:', {'Error':e, 'URL':url, 'args':args} );
+        return { 'Error':e, 'URL':url, 'args':args }
     }
     try{
         let responseObject = await response.json();
@@ -113,8 +98,8 @@ async function fetchObject(url, args=null){
             "title": "Can't parse the file",
             "message": "Check the file (URL in console):\n"+url
         })
-        console.log('Failed to load:',{'Error':e, 'URL':url, 'args':args});
-        return
+        console.error('Failed to load:', {'Error':e, 'URL':url, 'args':args} );
+        return { 'Error':e, 'URL':url, 'args':args }
     }
 };
 
@@ -170,8 +155,8 @@ async function pageBuilder(template, content, settings={}){
 
 // A Promise that returns the contents of a directory in the extension.
 // ls('Static/Configs').then(( pathsAndFiles )=> {...} )
-async function ls(path, flags=''){
-    console.log('ls',(flags!==''?'-'+flags+' '+path:path));
+async function ls(path, flags='', debug=false){
+    if(debug) console.dir('ls',(flags!==''?'-'+flags+' '+path:path));
     let output = [],
         promises = [],
         re = /201: ([\S]+).*/ig,
