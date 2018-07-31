@@ -10,4 +10,4 @@
 1. Flatten out buildMenu()  
 1. Set static colors in configs (browser.runtime.onMessage)
 1. Chrome Support
-    * ls() not working with fetch().then(a=>a.blob())
+    * Promisify browser.storage.sync.get()
