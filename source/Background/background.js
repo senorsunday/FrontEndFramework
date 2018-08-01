@@ -8,12 +8,16 @@ var titleRE = /([^\/]+).json/i; // A pattern using the config filename as it's t
 
 // Event listeners are functions that asynchronously trigger whenever an event happens.
 browser.runtime.onMessage.addListener( async(message, sender, response) => {
-    if(debug) console.log('*** We get signal ***\nMessage:', message, '\nSender:', sender, '\n***Signal End***');
+    // if(debug) console.log('*** We get signal ***\nMessage:', message, '\nSender:', sender, '\n***Signal End***');
     if(message==='main'){
         if(debug) console.info('Reloading Front End Framework...');
         await main();
         if(debug) console.info('Reloaded.')
         response(true);
+    }
+    if(message==='debug'){
+        if(debug) response(true);
+        else response(false);
     }
     return true;
 });
@@ -33,10 +37,7 @@ setInterval( ( _=> main() ), 86400000); // And refresh every day
 
 async function main(){  // Same as 'const main = async function(){...}'
     if(debug) console.info('Running main()');
-    let configURIs = []; // 'let' bounds the variable to this function's scope and down
-    if(debug) localConfigNames = [ "Configs/framework.json" ];
-    else localConfigNames = await ls( 'Configs/', flags='R', debug=debug); // 'await' syncs Promises/aysnc functions.
-    // Convert the path/name to a full URI string to GET.
+
     for( let i = 0; i < localConfigNames.length; i++ ){
         if( localConfigNames[i].toLowerCase().endsWith('.json') ){           // Filter out non-config files.
             configURIs.push( browser.extension.getURL(localConfigNames[i]) );// browser.extension.getURL() directly returns a string.

@@ -2,7 +2,7 @@
     "homepage_url": "https://github.com/senorsunday/FrontEndFramework",
     "name": "Front End Framework",
     "description": "This is a framework for webextensions, so you can deploy one quickly without any front-end work",
-    "version": "2018.7.30.2",
+    "version": "2018.7.31.0",
     "icons": {
         "16": "Public/Icons/favicon.svg",
         "96": "Public/Icons/favicon.svg"

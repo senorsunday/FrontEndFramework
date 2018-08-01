@@ -1,17 +1,18 @@
-var debugSettings = false;
+var debug=false;
 // document.body.innerHTML = '';
 
 // For displaying settings in the settings menus dynamically
 document.addEventListener( 'DOMContentLoaded', onLoad );
 
 async function onLoad(){
-    if(debugSettings) console.log('Loading Settings');
+    debug = await browser.runtime.sendMessage('debug');
+    if(debug) console.log('Loading Settings For:', document.title);
     await restoreOptions();
     return loadedSettings();
 };
 
 async function saveOptions(){
-    if(debugSettings) console.log("Saving...")
+    if(debug) console.log("Saving...")
     let setsAll = await browser.storage.sync.get();
     Array.from( document.getElementsByClassName('setting') ).forEach(elem=>{
         // For each setting input box, it has a parent <div> with the config's title as it's name.
@@ -24,7 +25,7 @@ async function saveOptions(){
 async function restoreOptions(){
     let setsAll = await browser.storage.sync.get();
     let body = '';
-    if(debugSettings) console.log(document.title+':');
+    if(debug) console.log(document.title+':');
     Object.keys(setsAll).forEach( title => {
         body += `
         <div id='${title}' class="container-fluid">
@@ -54,7 +55,7 @@ async function restoreOptions(){
         </div>
         <br/>`;
     })
-    if(debugSettings) console.log( body );
+    if(debug) console.log( body );
     // The DOM does NOT like adding unmatched <'s.
     // Reassinging this way also destroys event listeners.
     bodyObject = document.createElement("body")
@@ -65,7 +66,7 @@ async function restoreOptions(){
         heading.style.backgroundColor = color;
     })
     Array.from(document.getElementsByClassName('setting')).forEach(setting=>{
-        if(debugSettings) console.log(setting);
+        if(debug) console.log(setting);
         setting.addEventListener( 'change', saveOptions );
     });
     return

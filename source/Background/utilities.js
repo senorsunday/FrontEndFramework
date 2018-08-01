@@ -103,25 +103,6 @@ async function fetchObject(url, args=null){
     }
 };
 
-
-// Takes one or more strings and returns the stored value
-// loadSettings('apps.newTab', 'apps.server').then( settingsArray => {...} )
-// async function loadSettings(){
-//     if(arguments.length===0) return browser.storage.sync.get();
-//     else if(arguments.length===1){
-//         let tree = await browser.storage.sync.get( arguments[0].split('.')[0] );
-//         return branch(tree, arguments[0]);
-//     }
-//     else{
-//         return Promise.all( // So we don't return 
-//             Array.from(arguments).map( async(arg)=> {
-//                 let tree = await browser.storage.sync.get( arg.split('.')[0] );
-//                 return branch(tree, arg);
-//             })
-//         );
-//     }
-// };
-
 // Loads an HTML template, updates it,
 // then returns the tab object
 async function pageBuilder(template, content, settings={}){
