@@ -8,7 +8,7 @@ var titleRE = /([^\/]+).json/i; // A pattern using the config filename as it's t
 
 // Event listeners are functions that asynchronously trigger whenever an event happens.
 browser.runtime.onMessage.addListener( async(message, sender, response) => {
-    // if(debug) console.log('*** We get signal ***\nMessage:', message, '\nSender:', sender, '\n***Signal End***');
+    if(debug) console.log('*** We get signal ***\nMessage:', message, '\nSender:', sender, '\n***Signal End***');
     if(message==='main'){
         if(debug) console.info('Reloading Front End Framework...');
         await main();
@@ -19,7 +19,7 @@ browser.runtime.onMessage.addListener( async(message, sender, response) => {
         if(debug) response(true);
         else response(false);
     }
-    return true;
+    return;
 });
 
 browser.runtime.onInstalled.addListener( (details)=>{
@@ -37,7 +37,9 @@ setInterval( ( _=> main() ), 86400000); // And refresh every day
 
 async function main(){  // Same as 'const main = async function(){...}'
     if(debug) console.info('Running main()');
-
+    let configURIs = []; // 'let' bounds the variable to this function's scope and down
+    if(debug) localConfigNames = [ "Configs/framework.json" ];
+    else localConfigNames = await ls( 'Configs/', flags='R', debug=debug); // 'await' syncs Promises/aysnc functions.
     for( let i = 0; i < localConfigNames.length; i++ ){
         if( localConfigNames[i].toLowerCase().endsWith('.json') ){           // Filter out non-config files.
             configURIs.push( browser.extension.getURL(localConfigNames[i]) );// browser.extension.getURL() directly returns a string.
@@ -143,7 +145,7 @@ function buildMenu(title, menuItems, def, counter){
                 else if(def.hasOwnProperty('icons')) menuObj.icons = { '16': def.icons[item.icons] } // If the address doesn't have a key, its a default icon
             }
             if(item.hasOwnProperty('actions')){
-                // if(debug) console.log(item.id+"'s Actions:",item.actions)
+                if(debug) console.log(item.id+"'s Actions:",item.actions)
                 // Throwing in a function that will be triggered by the onClick event listener for the menu item
                 menuActions[item.id] = ((info, tab)=>{
                     // Input is the specific context that is being passed to the action function (ex. selected text)
@@ -156,7 +158,7 @@ function buildMenu(title, menuItems, def, counter){
                     (async()=>{ // Wrapping this in an IIFE so we can skip broken menu items one at a time
                         for( let j = 0; j < item.actions.length; j++ ){
                             let action = item.actions[j];
-                            // if(debug) console.log('action', action)
+                            if(debug) console.log('action', action)
                             // Await to a non-promise returns the variable as is
                             response = await output
                             // if(debug) console.log("Response:",response)
@@ -193,8 +195,9 @@ function buildMenu(title, menuItems, def, counter){
                                 
                             }
                             output = response; // Just in case we need to pass this in for another action
-                            return
+                            if(debug) console.log(output);
                         };
+                        return;
                     })();
                     return output
                 }); 

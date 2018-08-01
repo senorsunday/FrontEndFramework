@@ -55,7 +55,7 @@ async function restoreOptions(){
         </div>
         <br/>`;
     })
-    if(debug) console.log( body );
+    // if(debug) console.log( body );
     // The DOM does NOT like adding unmatched <'s.
     // Reassinging this way also destroys event listeners.
     bodyObject = document.createElement("body")
