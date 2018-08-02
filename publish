@@ -29,15 +29,15 @@ def update_updaters():
 		], stdout=open("/dev/null", "w") )
 		os.waitpid(p.pid, 0)
 		# Build chrome's version
-		manifest.pop('applications', None)
-		manifest['icons'] = { "128": "Public/Icons/favicon.png" }
-		manifest['browser_action']['default_icon'] = { "128": "Public/Icons/favicon.png" }
-		manifest['browser_action'].pop('browser_style', None)
-		manifest['options_ui'].pop('browser_style', None)
-		with open(path+'/source/manifest.json','w') as chrome:
-			json.dump(manifest, chrome, indent=4)
-		print("web-ext","build","-s="+path+"/source","-a="+path+"/builds/chrome","--overwrite-dest","-i",".*")
-		q = subprocess.Popen([ # Build the new chrome version
-			"web-ext","build","-s="+path+"/source","-a="+path+"/builds/chrome","--overwrite-dest","-i",".*"
-		], stdout=open("/dev/null", "w") )
+		# manifest.pop('applications', None)
+		# manifest['icons'] = { "128": "Public/Icons/favicon.png" }
+		# manifest['browser_action']['default_icon'] = { "128": "Public/Icons/favicon.png" }
+		# manifest['browser_action'].pop('browser_style', None)
+		# manifest['options_ui'].pop('browser_style', None)
+		# with open(path+'/source/manifest.json','w') as chrome:
+		# 	json.dump(manifest, chrome, indent=4)
+		# print("web-ext","build","-s="+path+"/source","-a="+path+"/builds/chrome","--overwrite-dest","-i",".*")
+		# q = subprocess.Popen([ # Build the new chrome version
+		# 	"web-ext","build","-s="+path+"/source","-a="+path+"/builds/chrome","--overwrite-dest","-i",".*"
+		# ], stdout=open("/dev/null", "w") )
 update_updaters()
